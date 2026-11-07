@@ -90,13 +90,7 @@ async fn discord() -> Result<()> {
 
     #[cfg(target_os = "windows")]
     let window: Window = {
-        let mut icon_path: String = format!("assets/{}_logo.webp", APP_NAME);
-
-        if !std::path::Path::new(&icon_path).exists() {
-            icon_path = "assets/logo.webp".to_string();
-        }
-
-        let icon: Icon = load_icon(std::path::Path::new(&icon_path));
+        let icon: Icon = load_icon();
 
         main_window
             .with_window_icon(Some(icon.clone()))
@@ -115,13 +109,7 @@ async fn discord() -> Result<()> {
 
     #[cfg(target_os = "linux")]
     let window: Window = {
-        let mut icon_path: String = format!("assets/{}_logo.webp", APP_NAME);
-
-        if !std::path::Path::new(&icon_path).exists() {
-            icon_path = "assets/logo.webp".to_string();
-        }
-
-        let icon: Icon = load_icon(std::path::Path::new(&icon_path));
+        let icon: Icon = load_icon();
 
         main_window
             .with_window_icon(Some(icon.clone()))
@@ -513,11 +501,16 @@ fn load_mods() -> String {
     script
 }
 
+/// Uses a custom `assets/LemonCord_logo.webp` in the working folder if there is one, otherwise the
+/// logo built into the exe, so LemonCord starts from any folder.
 #[cfg(any(target_os = "linux", target_os = "windows"))]
-fn load_icon(path: &std::path::Path) -> Icon {
+fn load_icon() -> Icon {
+    let custom = std::fs::read(format!("assets/{}_logo.webp", APP_NAME)).ok();
+    let bytes: &[u8] = custom.as_deref().unwrap_or(include_bytes!("../assets/logo.webp"));
+
     let (icon_rgba, icon_width, icon_height) = {
-        let image = image::open(path)
-            .expect("Failed to open icon path.")
+        let image = image::load_from_memory(bytes)
+            .expect("Failed to read icon.")
             .into_rgba8();
 
         let (width, height) = image.dimensions();
